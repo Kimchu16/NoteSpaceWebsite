@@ -1,25 +1,32 @@
 <script>
-import Notecard from '../components/notecard.svelte';
-import { supabase } from '$lib/supabaseClient.js';
-import { modalData } from '$lib/stores';
+  import Notecard from "../components/notecard.svelte";
+  import { supabase } from "$lib/supabaseClient.js";
+  import { modalData } from "$lib/stores";
 
-let new_note_context = $modalData ? $modalData.context : '';
-let new_note_colour = '';
+  let new_note_context = "";
+  $: new_note_context = $modalData ? $modalData.context : "";
+  let new_note_colour = "";
+
+  let colours = ["green", "blue", "yellow", "purple"];
+  $: new_note_colour = $modalData ? $modalData.colour : "";
 
   export let data;
   let notes = data.notes;
   let tags = data.tags;
   let viewingNotes = true;
 
-async function updateNote() {
+  async function updateNote() {
     const { data, error } = await supabase
-			.from("notes")
-			.update({ context: new_note_context })
-			.eq("id", $modalData.id);
+      .from("notes")
+      .update({ context: new_note_context, colour: new_note_colour })
+      .eq("id", $modalData.id);
 
-		if (error) console.error(error);
-    
-}
+    if (error) console.error(error);
+    else {
+      modalData.set(null);
+      location.reload();
+    }
+  }
 </script>
 
 <main class="min-h-screen bg-base-200 px-4 py-10">
@@ -43,7 +50,10 @@ async function updateNote() {
     </div>
 
     <div class="flex justify-start gap-4">
-      <button class="btn btn-primary" onclick={() => (viewingNotes = !viewingNotes)}>
+      <button
+        class="btn btn-primary"
+        onclick={() => (viewingNotes = !viewingNotes)}
+      >
         {#if viewingNotes}View Tags{:else}View Notes{/if}
       </button>
     </div>
@@ -52,53 +62,69 @@ async function updateNote() {
       {#if notes.length > 0}
         <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {#each notes as note}
-            <Notecard note={note} />
+            <Notecard {note} />
           {/each}
         </ul>
       {:else}
         <div class="card bg-base-100 shadow-md">
           <div class="card-body items-center text-center">
             <h2 class="card-title">No notes found</h2>
-            <p class="text-base-content/70">Create your first note to see it here.</p>
+            <p class="text-base-content/70">
+              Create your first note to see it here.
+            </p>
           </div>
         </div>
       {/if}
+    {:else if tags.length > 0}
+      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {#each tags as tag}
+          <li class="card bg-base-100 shadow-md transition hover:shadow-lg">
+            <div class="card-body">
+              <h2 class="card-title">
+                <span class="badge badge-secondary badge-outline">Tag</span>
+                {tag.tag_name}
+              </h2>
+              <p class="text-base-content/80">{tag.description}</p>
+            </div>
+          </li>
+        {/each}
+      </ul>
     {:else}
-      {#if tags.length > 0}
-        <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {#each tags as tag}
-            <li class="card bg-base-100 shadow-md transition hover:shadow-lg">
-              <div class="card-body">
-                <h2 class="card-title">
-                  <span class="badge badge-secondary badge-outline">Tag</span>
-                  {tag.tag_name}
-                </h2>
-                <p class="text-base-content/80">{tag.description}</p>
-              </div>
-            </li>
-          {/each}
-        </ul>
-      {:else}
-        <div class="card bg-base-100 shadow-md">
-          <div class="card-body items-center text-center">
-            <h2 class="card-title">No tags found</h2>
-            <p class="text-base-content/70">Create your first tag to see it here.</p>
-          </div>
+      <div class="card bg-base-100 shadow-md">
+        <div class="card-body items-center text-center">
+          <h2 class="card-title">No tags found</h2>
+          <p class="text-base-content/70">
+            Create your first tag to see it here.
+          </p>
         </div>
-      {/if}
+      </div>
     {/if}
   </section>
 </main>
 
-
 {#if $modalData}
   <dialog class="modal modal-open">
     <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">Edit Note</h3>
-      <input type="text" class="input" placeholder="note context" bind:value={new_note_context}>
+      <h3 class="font-bold text-lg mb-4">Edit Note</h3>
+      <input
+        type="text"
+        class="input"
+        placeholder="note context"
+        bind:value={new_note_context}
+      />
+      <select class="select mt-4" bind:value={new_note_colour}>
+        <option disabled selected>Pick a color</option>
+        {#each colours as colour}
+          <option value={colour}>{colour}</option>
+        {/each}
+      </select>
       <div class="modal-action">
-        <button onclick={() => modalData.set(null)} class="btn btn-error">Close</button>
-        <button onclick={() => updateNote()} class="btn btn-success">Update</button>
+        <button onclick={() => modalData.set(null)} class="btn btn-error"
+          >Close</button
+        >
+        <button onclick={() => updateNote()} class="btn btn-success"
+          >Update</button
+        >
       </div>
     </div>
     <form method="dialog" class="modal-backdrop">

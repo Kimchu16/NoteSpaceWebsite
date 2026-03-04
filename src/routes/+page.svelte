@@ -32,10 +32,26 @@
   let viewingNotes = true;
   let loaded = false;
 
+  let filtered_notes = notes;
+
   let editing_tag = false;
   let edited_tag_name = "";
   let edited_tag_description = "";
   let edited_tag_id = null;
+
+  let search_value = "";
+
+  function filterNotes() {
+    if (search_value.trim() === "") {
+      filtered_notes = notes;
+    } else {
+      const lowerSearch = search_value.toLowerCase();
+      filtered_notes = notes.filter((note) =>
+        note.context.toLowerCase().includes(lowerSearch)
+      );
+    }
+  }
+
   async function updateNote() {
     const { data, error } = await supabase
       .from("notes")
@@ -193,8 +209,9 @@
 
       {#if viewingNotes}
         {#if notes.length > 0}
+        <input type="text" placeholder="Search notes..." class="input w-full mb-4" oninput={() => filterNotes()} bind:value={search_value} />
           <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {#each notes as note}
+            {#each filtered_notes as note}
               <Notecard {note} />
             {/each}
           </ul>

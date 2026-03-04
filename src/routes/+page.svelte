@@ -1,11 +1,25 @@
 <script>
 import Notecard from '../components/notecard.svelte';
+import { supabase } from '$lib/supabaseClient.js';
 import { modalData } from '$lib/stores';
+
+let new_note_context = $modalData ? $modalData.context : '';
+let new_note_colour = '';
+
   export let data;
   let notes = data.notes;
   let tags = data.tags;
   let viewingNotes = true;
 
+async function updateNote() {
+    const { data, error } = await supabase
+			.from("notes")
+			.update({ context: new_note_context })
+			.eq("id", $modalData.id);
+
+		if (error) console.error(error);
+    
+}
 </script>
 
 <main class="min-h-screen bg-base-200 px-4 py-10">
@@ -80,12 +94,11 @@ import { modalData } from '$lib/stores';
 {#if $modalData}
   <dialog class="modal modal-open">
     <div class="modal-box">
-      <h3 class="text-lg font-bold">{$modalData.context}</h3>
-      <p class="py-2 text-base-content/80">
-        Position: {$modalData.pos_x}, {$modalData.pos_y}, {$modalData.pos_z}
-      </p>
+        <h3 class="font-bold text-lg mb-4">Edit Note</h3>
+      <input type="text" class="input" placeholder="note context" bind:value={new_note_context}>
       <div class="modal-action">
         <button onclick={() => modalData.set(null)} class="btn btn-error">Close</button>
+        <button onclick={() => updateNote()} class="btn btn-success">Update</button>
       </div>
     </div>
     <form method="dialog" class="modal-backdrop">

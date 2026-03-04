@@ -1,5 +1,6 @@
 <script>
   import Notecard from "../components/notecard.svelte";
+  import { onMount } from "svelte";
   import { supabase } from "$lib/supabaseClient.js";
   import { modalData } from "$lib/stores";
 
@@ -21,10 +22,15 @@
   let created_context = "";
   let created_colour = "";
 
+  let create_tag = false;
+  let created_tag_name = "";
+  let created_tag_description = "";
+
   export let data;
   let notes = data.notes;
   let tags = data.tags;
   let viewingNotes = true;
+  let loaded = false;
 
   async function updateNote() {
     const { data, error } = await supabase
@@ -64,8 +70,40 @@
       location.reload();
     }
   }
-</script>
 
+  async function createTag() {
+    const { data, error } = await supabase.from("tags").insert({
+      tag_name: created_tag_name,
+      description: created_tag_description,
+    });
+
+    if (error) console.error(error);
+    else {
+      create_tag = false;
+      location.reload();
+    }
+  }
+  function toggleView() {
+    viewingNotes = !viewingNotes;
+    if (viewingNotes) {
+      window.location.hash = "#notes";
+    } else {
+      window.location.hash = "#tags";
+    }
+  }
+
+  onMount(() => {
+    let fragment = window.location.hash;
+    if (fragment === "#tags") {
+      viewingNotes = false;
+    } else if (fragment === "#notes") {
+      viewingNotes = true;
+    }
+    loaded = true;
+
+  })
+</script>
+{#if loaded}
 <main class="min-h-screen bg-base-200 px-4 py-10">
   <section class="mx-auto w-full max-w-6xl space-y-6">
     <div class="hero rounded-box bg-base-100 shadow-sm">
@@ -90,12 +128,13 @@
       <div class="flex justify-start gap-4">
         <button
           class="btn btn-primary"
-          onclick={() => (viewingNotes = !viewingNotes)}
+          onclick={() => toggleView()}
         >
           {#if viewingNotes}View Tags{:else}View Notes{/if}
         </button>
       </div>
 
+      {#if viewingNotes}
       <div class="flex justify-end gap-4">
         <button
           class="btn btn-primary"
@@ -104,6 +143,16 @@
           Create Note
         </button>
       </div>
+      {:else}
+         <div class="flex justify-end gap-4">
+        <button
+          class="btn btn-primary"
+          onclick={() => (create_tag = !create_tag)}
+        >
+          Create Tag
+        </button>
+        </div>
+        {/if}
     </div>
 
     {#if viewingNotes}
@@ -149,7 +198,11 @@
     {/if}
   </section>
 </main>
-
+{:else}
+    <div class="flex items-center justify-center h-screen">
+        <span class="loading loading-spinner loading-lg"></span>
+    </div>
+    {/if}
 {#if $modalData}
   <dialog class="modal modal-open">
     <div class={"modal-box " + colour_map[new_note_colour]}>
@@ -214,3 +267,37 @@
     </form>
   </dialog>
 {/if}
+
+{#if create_tag}
+  <dialog class="modal modal-open">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4">Create Tag</h3>
+      <input
+        type="text"
+        class="input"
+        placeholder="tag name"
+        bind:value={created_tag_name}
+      />
+      <input
+        type="text"
+        class="input mt-4"
+        placeholder="tag description"
+        bind:value={created_tag_description}
+      />
+      
+      <div class="modal-action">
+        <button onclick={() => create_tag = false} class="btn btn-error"
+          >Close</button
+        >
+        <button onclick={() => createTag()} class="btn btn-success"
+          >Create</button
+        >
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button onclick={() => create_tag = false}>close</button>
+    </form>
+  </dialog>
+{/if}
+
+

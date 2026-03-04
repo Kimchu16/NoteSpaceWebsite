@@ -10,6 +10,17 @@
   let colours = ["green", "blue", "yellow", "purple"];
   $: new_note_colour = $modalData ? $modalData.colour : "";
 
+  let colour_map = {
+    green: "bg-[#4B644A]",
+    blue: "bg-[#304C89]",
+    yellow: "bg-[#FFC857]",
+    purple: "bg-[#342140]",
+  };
+
+  let create_note = false;
+  let created_context = "";
+  let created_colour = "";
+
   export let data;
   let notes = data.notes;
   let tags = data.tags;
@@ -19,6 +30,32 @@
     const { data, error } = await supabase
       .from("notes")
       .update({ context: new_note_context, colour: new_note_colour })
+      .eq("id", $modalData.id);
+
+    if (error) console.error(error);
+    else {
+      modalData.set(null);
+      location.reload();
+    }
+  }
+
+  async function createNote() {
+    const { data, error } = await supabase.from("notes").insert({
+      context: created_context,
+      colour: created_colour,
+    });
+
+    if (error) console.error(error);
+    else {
+      create_note = false;
+      location.reload();
+    }
+}
+
+  async function deleteNote() {
+    const { data, error } = await supabase
+      .from("notes")
+      .delete()
       .eq("id", $modalData.id);
 
     if (error) console.error(error);
@@ -49,13 +86,24 @@
       </div>
     </div>
 
-    <div class="flex justify-start gap-4">
-      <button
-        class="btn btn-primary"
-        onclick={() => (viewingNotes = !viewingNotes)}
-      >
-        {#if viewingNotes}View Tags{:else}View Notes{/if}
-      </button>
+    <div class="flex flex-row justify-between w-full">
+      <div class="flex justify-start gap-4">
+        <button
+          class="btn btn-primary"
+          onclick={() => (viewingNotes = !viewingNotes)}
+        >
+          {#if viewingNotes}View Tags{:else}View Notes{/if}
+        </button>
+      </div>
+
+      <div class="flex justify-end gap-4">
+        <button
+          class="btn btn-primary"
+          onclick={() => (create_note = !create_note)}
+        >
+          Create Note
+        </button>
+      </div>
     </div>
 
     {#if viewingNotes}
@@ -104,7 +152,7 @@
 
 {#if $modalData}
   <dialog class="modal modal-open">
-    <div class="modal-box">
+    <div class={"modal-box " + colour_map[new_note_colour]}>
       <h3 class="font-bold text-lg mb-4">Edit Note</h3>
       <input
         type="text"
@@ -125,10 +173,44 @@
         <button onclick={() => updateNote()} class="btn btn-success"
           >Update</button
         >
+        <button onclick={() => deleteNote()} class="btn btn-error"
+          >Delete</button
+        >
       </div>
     </div>
     <form method="dialog" class="modal-backdrop">
       <button onclick={() => modalData.set(null)}>close</button>
+    </form>
+  </dialog>
+{/if}
+
+{#if create_note}
+  <dialog class="modal modal-open">
+    <div class={"modal-box " + colour_map[created_colour]}>
+      <h3 class="font-bold text-lg mb-4">Create Note</h3>
+      <input
+        type="text"
+        class="input"
+        placeholder="note context"
+        bind:value={created_context}
+      />
+      <select class="select mt-4" bind:value={created_colour}>
+        <option disabled selected>Pick a color</option>
+        {#each colours as colour}
+          <option value={colour}>{colour}</option>
+        {/each}
+      </select>
+      <div class="modal-action">
+        <button onclick={() => create_note = false} class="btn btn-error"
+          >Close</button
+        >
+        <button onclick={() => createNote()} class="btn btn-success"
+          >Create</button
+        >
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button onclick={() => create_note = false}>close</button>
     </form>
   </dialog>
 {/if}

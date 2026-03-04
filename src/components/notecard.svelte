@@ -1,6 +1,7 @@
 <script>
 export let note;
-
+let showModal = false;
+import { modalData } from '$lib/stores';
 </script>
 
 <li class="card bg-base-100 shadow-md transition hover:shadow-lg">
@@ -13,4 +14,7 @@ export let note;
       <div class="badge badge-outline">z: {note.pos_z}</div>
     </div>
   </div>
+<button onclick={() => {modalData.set(note)}} class="btn">open modal</button>
+
+
 </li>

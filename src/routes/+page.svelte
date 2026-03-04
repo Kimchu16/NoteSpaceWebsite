@@ -1,9 +1,11 @@
 <script>
 import Notecard from '../components/notecard.svelte';
+import { modalData } from '$lib/stores';
   export let data;
   let notes = data.notes;
   let tags = data.tags;
   let viewingNotes = true;
+
 </script>
 
 <main class="min-h-screen bg-base-200 px-4 py-10">
@@ -73,3 +75,21 @@ import Notecard from '../components/notecard.svelte';
     {/if}
   </section>
 </main>
+
+
+{#if $modalData}
+  <dialog class="modal modal-open">
+    <div class="modal-box">
+      <h3 class="text-lg font-bold">{$modalData.context}</h3>
+      <p class="py-2 text-base-content/80">
+        Position: {$modalData.pos_x}, {$modalData.pos_y}, {$modalData.pos_z}
+      </p>
+      <div class="modal-action">
+        <button onclick={() => modalData.set(null)} class="btn btn-error">Close</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button onclick={() => modalData.set(null)}>close</button>
+    </form>
+  </dialog>
+{/if}

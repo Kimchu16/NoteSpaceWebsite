@@ -32,6 +32,10 @@
   let viewingNotes = true;
   let loaded = false;
 
+  let editing_tag = false;
+  let edited_tag_name = "";
+  let edited_tag_description = "";
+  let edited_tag_id = null;
   async function updateNote() {
     const { data, error } = await supabase
       .from("notes")
@@ -89,6 +93,26 @@
       window.location.hash = "#notes";
     } else {
       window.location.hash = "#tags";
+    }
+  }
+
+function editTag(tag) {
+    editing_tag = true;
+    edited_tag_name = tag.tag_name;
+    edited_tag_description = tag.description;
+    edited_tag_id = tag.tag_id;
+  }
+
+  async function updateTag() {
+    const { data, error } = await supabase
+      .from("tags")
+      .update({ tag_name: edited_tag_name, description: edited_tag_description })
+      .eq("tag_id", edited_tag_id);
+
+    if (error) console.error(error);
+    else {
+      editing_tag = false;
+      location.reload();
     }
   }
 
@@ -182,6 +206,7 @@
                 {tag.tag_name}
               </h2>
               <p class="text-base-content/80">{tag.description}</p>
+              <button onclick={() => editTag(tag)}>Edit</button>
             </div>
           </li>
         {/each}
@@ -300,4 +325,34 @@
   </dialog>
 {/if}
 
-
+{#if editing_tag}
+  <dialog class="modal modal-open">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4">Edit Tag</h3>
+      <input
+        type="text"
+        class="input"
+        placeholder="tag name"
+        bind:value={edited_tag_name}
+      />
+      <input
+        type="text"
+        class="input mt-4"
+        placeholder="tag description"
+        bind:value={edited_tag_description}
+      />
+      
+      <div class="modal-action">
+        <button onclick={() => editing_tag = false} class="btn btn-error"
+          >Close</button
+        >
+        <button onclick={() => updateTag()} class="btn btn-success"
+          >Update</button
+        >
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button onclick={() => editing_tag = false}>close</button>
+    </form>
+  </dialog>
+{/if}

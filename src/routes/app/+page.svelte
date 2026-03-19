@@ -10,7 +10,13 @@
 
 
   let colours = ["green", "blue", "yellow", "purple"];
+  let selected_tag_ids = /** @type {string[]} */ ([]);
   $: new_note_colour = $modalData ? $modalData.colour : "";
+  $: selected_tag_ids = $modalData
+    ? note_tags
+        .filter((item) => item.note_id === $modalData.id)
+        .map((item) => String(item.tag_id))
+    : [];
 
   let colour_map = {
     green: "bg-[#4B644A]",
@@ -30,6 +36,7 @@
   export let data;
   let notes = data.notes;
   let tags = data.tags;
+  let note_tags = data.noteTags ?? [];
   let user_email = "";
   let current_user = data.user;
 
@@ -57,22 +64,47 @@
   }
 
   async function updateNote() {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("notes")
       .update({ context: new_note_context, colour: new_note_colour })
       .eq("id", $modalData.id);
 
-    if (error) console.error(error);
-    else {
-      modalData.set(null);
-      location.reload();
+    if (error) {
+      console.error(error);
+      return;
     }
+
+    const { error: deleteTagError } = await supabase
+      .from("note_tags")
+      .delete()
+      .eq("note_id", $modalData.id);
+
+    if (deleteTagError) {
+      console.error(deleteTagError);
+      return;
+    }
+
+    if (selected_tag_ids.length > 0) {
+      const tagRows = selected_tag_ids.map((tag_id) => ({
+        note_id: $modalData.id,
+        tag_id: Number(tag_id),
+      }));
+
+      const { error: insertTagError } = await supabase.from("note_tags").insert(tagRows);
+
+      if (insertTagError) {
+        console.error(insertTagError);
+        return;
+      }
+    }
+
+    modalData.set(null);
+    location.reload();
   }
 
   async function createNote() {
-
     let owner_id = current_user?.id || "";
-    const { data, error } = await supabase.from("notes").insert({
+    const { error } = await supabase.from("notes").insert({
       context: created_context,
       colour: created_colour,
       owner: owner_id,
@@ -86,7 +118,7 @@
   }
 
   async function deleteNote() {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("notes")
       .delete()
       .eq("id", $modalData.id);
@@ -99,9 +131,10 @@
   }
 
   async function createTag() {
-    const { data, error } = await supabase.from("tags").insert({
+    const { error } = await supabase.from("tags").insert({
       tag_name: created_tag_name,
       description: created_tag_description,
+      owner: current_user?.id || "",
     });
 
     if (error) console.error(error);
@@ -127,7 +160,7 @@
   }
 
   async function updateTag() {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("tags")
       .update({
         tag_name: edited_tag_name,
@@ -143,7 +176,7 @@
   }
 
   async function deleteTag() {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("tags")
       .delete()
       .eq("tag_id", edited_tag_id);
@@ -152,6 +185,12 @@
     else {
       location.reload();
     }
+  }
+
+  async function signOut() {
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Error signing out:", error);
+    else window.location.href = "/auth/login";
   }
 
   onMount(async () => {
@@ -172,6 +211,12 @@
 {#if loaded}
   <main class="min-h-screen bg-base-200 px-4 py-10">
     <section class="mx-auto w-full max-w-6xl space-y-6">
+      <div class="flex justify-end w-full">
+        <button class="btn btn-outline btn-error" onclick={() => signOut()}>
+          Sign Out
+        </button>
+      </div>
+
       <div class="hero rounded-box bg-base-100 shadow-sm">
         <div class="hero-content w-full flex-col items-start p-8">
           <span class="badge badge-primary badge-outline">NoteSpace</span>
@@ -284,6 +329,18 @@
           <option value={colour}>{colour}</option>
         {/each}
       </select>
+      <div class="mt-4">
+        <p class="label-text mb-2">Tags</p>
+        {#if tags.length > 0}
+          <select class="select select-bordered w-full" multiple bind:value={selected_tag_ids}>
+            {#each tags as tag}
+              <option value={String(tag.tag_id)}>{tag.tag_name}</option>
+            {/each}
+          </select>
+        {:else}
+          <p class="text-sm text-base-content/70">No tags available.</p>
+        {/if}
+      </div>
       <div class="modal-action">
         <button onclick={() => modalData.set(null)} class="btn btn-error"
           >Close</button

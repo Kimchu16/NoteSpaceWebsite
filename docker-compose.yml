@@ -7,8 +7,8 @@ services:
       dockerfile: Dockerfile
     container_name: notespace-web-prod
     ports:
-      - "3000:3000" # Exposing the production Node.js port
+      - "2503:2503" # Exposing the production Node.js port
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=2503
     restart: unless-stopped
